@@ -564,9 +564,9 @@
         <div class="reward-wrap">
           <input id="fItemPropertySearch" class="field" placeholder="Search property name…"
             autocomplete="off"
-            oninput="onPropertyInput()"
-            onfocus="onPropertyFocus()"
-            onkeydown="onPropertyKeydown(event)" />
+            oninput="onPropertyInput(ITEM_DRAWER_PROPERTY_CTX)"
+            onfocus="onPropertyFocus(ITEM_DRAWER_PROPERTY_CTX)"
+            onkeydown="onPropertyKeydown(ITEM_DRAWER_PROPERTY_CTX, event)" />
           <input type="hidden" id="fItemProperty" />
           <div id="propertyDropdown">
             <!-- populated by JS -->
@@ -668,7 +668,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Close dropdowns when clicking outside
   document.addEventListener('click', e => {
     if (!e.target.closest('.reward-wrap')) closeRewardDropdown();
-    if (!e.target.closest('#fItemPropertySearch') && !e.target.closest('#propertyDropdown')) closePropertyDropdown();
+    if (!e.target.closest('#fItemPropertySearch') && !e.target.closest('#propertyDropdown')) closePropertyDropdown(ITEM_DRAWER_PROPERTY_CTX);
+    if (!e.target.closest('#newItemPropertySearch') && !e.target.closest('#newItemPropertyDropdown')) closePropertyDropdown(NEW_ITEM_PROPERTY_CTX);
   });
 });
 
@@ -1333,6 +1334,26 @@ function buildAddItemForm() {
     const isFirst   = i === 0;
     const isDisplay = col === itemsSchema.display_col;
     const label     = col.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    if (col === 'item_property') {
+      body.innerHTML += `
+        <div style="margin-bottom:14px;">
+          <label for="newItemPropertySearch">${esc(label)}</label>
+          <div class="reward-wrap">
+            <input id="newItemPropertySearch" class="field" placeholder="Search property name…"
+              autocomplete="off"
+              oninput="onPropertyInput(NEW_ITEM_PROPERTY_CTX)"
+              onfocus="onPropertyFocus(NEW_ITEM_PROPERTY_CTX)"
+              onkeydown="onPropertyKeydown(NEW_ITEM_PROPERTY_CTX, event)" />
+            <input type="hidden" id="newItemPropertyHidden" data-col="item_property" />
+            <div id="newItemPropertyDropdown">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
     body.innerHTML += `
       <div style="margin-bottom:14px;">
         <label for="addItemField_${i}">${esc(label)}${isFirst ? ' <span style="color:var(--danger);">*</span>' : ''}</label>
@@ -1345,11 +1366,14 @@ function buildAddItemForm() {
 
 function openAddItemModal(prefill) {
   closeRewardDropdown();
-  // Clear all generated fields, then pre-fill the first one
-  const fields = document.querySelectorAll('#addItemFormFields input');
+  // Clear all generated fields (including the property typeahead's hidden id), then pre-fill the first one
+  const fields = document.querySelectorAll('#addItemFormFields input[data-col]');
   fields.forEach((f, i) => { f.value = i === 0 ? (prefill || '') : ''; });
+  const propSearch = document.getElementById('newItemPropertySearch');
+  if (propSearch) propSearch.value = '';
+  closePropertyDropdown(NEW_ITEM_PROPERTY_CTX);
   document.getElementById('addItemModal').classList.add('open');
-  setTimeout(() => { const first = document.querySelector('#addItemFormFields input'); if(first) first.focus(); }, 50);
+  setTimeout(() => { const first = document.getElementById('addItemField_0'); if(first) first.focus(); }, 50);
 }
 
 function closeAddItemModal() {
@@ -1534,9 +1558,12 @@ function itemPropertyName(propId) {
 }
 
 // -----------------------------------------------------------------------
-// Property typeahead (single-select, used in the item add/edit drawer)
+// Property typeahead (single-select) — parameterized so it can drive both
+// the item drawer's Property field and the inline "New Item" modal's field.
 // -----------------------------------------------------------------------
 let ddPropertyFocusIndex = -1;
+const ITEM_DRAWER_PROPERTY_CTX = { searchId: 'fItemPropertySearch',    hiddenId: 'fItemProperty',        dropdownId: 'propertyDropdown' };
+const NEW_ITEM_PROPERTY_CTX    = { searchId: 'newItemPropertySearch', hiddenId: 'newItemPropertyHidden', dropdownId: 'newItemPropertyDropdown' };
 
 function getPropertyDropdownItems(query) {
   const q = query.trim().toLowerCase();
@@ -1544,8 +1571,9 @@ function getPropertyDropdownItems(query) {
   return allItemProperties.filter(p => p.property_name.toLowerCase().includes(q)).slice(0, 50);
 }
 
-function renderPropertyDropdown(query) {
-  const dd    = document.getElementById('propertyDropdown');
+function renderPropertyDropdown(ctx, query) {
+  const dd    = document.getElementById(ctx.dropdownId);
+  if (!dd) return;
   const items = getPropertyDropdownItems(query);
   const q     = query.trim();
   dd.innerHTML = '';
@@ -1561,7 +1589,7 @@ function renderPropertyDropdown(query) {
       el.className = 'dd-item';
       el.dataset.idx = idx;
       el.innerHTML = `<span class="dd-name">${esc(p.property_name)}</span>`;
-      el.onmousedown = e => { e.preventDefault(); selectProperty(p.id, p.property_name); };
+      el.onmousedown = e => { e.preventDefault(); selectProperty(ctx, p.id, p.property_name); };
       dd.appendChild(el);
     });
   }
@@ -1571,7 +1599,7 @@ function renderPropertyDropdown(query) {
     const createEl = document.createElement('div');
     createEl.className = 'dd-item dd-create';
     createEl.innerHTML = `<span style="display:flex;align-items:center;gap:6px;"><i data-lucide="plus-circle" style="width:13px;height:13px;"></i> Add "${esc(q)}" as a new property…</span>`;
-    createEl.onmousedown = e => { e.preventDefault(); createNewProperty(q); };
+    createEl.onmousedown = e => { e.preventDefault(); createNewProperty(ctx, q); };
     dd.appendChild(createEl);
   }
 
@@ -1579,26 +1607,27 @@ function renderPropertyDropdown(query) {
   lucide.createIcons();
 }
 
-function onPropertyInput() {
-  const input = document.getElementById('fItemPropertySearch');
-  document.getElementById('fItemProperty').value = '';
-  renderPropertyDropdown(input.value);
+function onPropertyInput(ctx) {
+  const input = document.getElementById(ctx.searchId);
+  document.getElementById(ctx.hiddenId).value = '';
+  renderPropertyDropdown(ctx, input.value);
 }
 
-function onPropertyFocus() {
-  renderPropertyDropdown(document.getElementById('fItemPropertySearch').value);
+function onPropertyFocus(ctx) {
+  renderPropertyDropdown(ctx, document.getElementById(ctx.searchId).value);
 }
 
-function closePropertyDropdown() {
-  const dd = document.getElementById('propertyDropdown');
+function closePropertyDropdown(ctx) {
+  const dd = document.getElementById(ctx.dropdownId);
+  if (!dd) return;
   dd.classList.remove('open');
   ddPropertyFocusIndex = -1;
 }
 
-function onPropertyKeydown(e) {
-  const dd    = document.getElementById('propertyDropdown');
+function onPropertyKeydown(ctx, e) {
+  const dd    = document.getElementById(ctx.dropdownId);
   const items = dd.querySelectorAll('.dd-item');
-  if (e.key === 'Escape') { closePropertyDropdown(); return; }
+  if (e.key === 'Escape') { closePropertyDropdown(ctx); return; }
   if (e.key === 'ArrowDown') {
     e.preventDefault();
     ddPropertyFocusIndex = Math.min(ddPropertyFocusIndex + 1, items.length - 1);
@@ -1620,13 +1649,13 @@ function onPropertyKeydown(e) {
   }
 }
 
-function selectProperty(id, name) {
-  document.getElementById('fItemProperty').value       = id;
-  document.getElementById('fItemPropertySearch').value  = name;
-  closePropertyDropdown();
+function selectProperty(ctx, id, name) {
+  document.getElementById(ctx.hiddenId).value  = id;
+  document.getElementById(ctx.searchId).value  = name;
+  closePropertyDropdown(ctx);
 }
 
-async function createNewProperty(name) {
+async function createNewProperty(ctx, name) {
   try {
     const res = await fetch('/api/item-properties', {
       method:  'POST',
@@ -1638,7 +1667,7 @@ async function createNewProperty(name) {
     allItemProperties.push({ id: data.id, property_name: data.property_name });
     allItemProperties.sort((a, b) => a.property_name.localeCompare(b.property_name));
     populateItemPropertyOptions();
-    selectProperty(data.id, data.property_name);
+    selectProperty(ctx, data.id, data.property_name);
     toast(`Property "${data.property_name}" added.`, 'success');
   } catch(err) {
     toast(`Error: ${err.message}`, 'error');
@@ -1703,7 +1732,7 @@ function openAddItemDrawer() {
   document.getElementById('itemForm').reset();
   document.getElementById('fItemProperty').value = '';
   document.getElementById('fItemPropertySearch').value = '';
-  closePropertyDropdown();
+  closePropertyDropdown(ITEM_DRAWER_PROPERTY_CTX);
   openItemDrawer();
 }
 
@@ -1716,7 +1745,7 @@ function openEditItemDrawer(pk) {
   document.getElementById('fUniqueName').value   = item.unique_name  || '';
   document.getElementById('fItemProperty').value = item.item_property || '';
   document.getElementById('fItemPropertySearch').value = itemPropertyName(item.item_property) === '—' ? '' : itemPropertyName(item.item_property);
-  closePropertyDropdown();
+  closePropertyDropdown(ITEM_DRAWER_PROPERTY_CTX);
   document.getElementById('fDndLink').value      = item.dndbeyond_link || '';
   document.getElementById('fItemNotes').value    = item.notes        || '';
   openItemDrawer();
