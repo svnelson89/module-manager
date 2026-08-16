@@ -91,6 +91,13 @@
     #confirmModal.open { display: flex; }
     #confirmBox { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 28px; width: 360px; text-align: center; }
 
+    /* Row expansion for rewards */
+    .reward-detail-row { display: none; background: var(--card2); border-top: 1px solid var(--border); }
+    .reward-detail-row.open { display: table-row; }
+    .reward-detail-cell { padding: 12px 12px; color: var(--text); font-size: 13px; }
+    .reward-detail-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .reward-item-tag { background: var(--accent); color: #fff; border-radius: 4px; padding: 4px 10px; font-size: 12px; font-weight: 500; }
+
     /* Add-Item modal */
     #addItemModal { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300; display: none; align-items: center; justify-content: center; }
     #addItemModal.open { display: flex; }
@@ -625,7 +632,10 @@ function renderTable() {
       <td>${trunc(m['season-setting'], 14)}</td>
       <td>${esc(m['running-time'])}</td>
       <td style="color:var(--muted);">${lastRun}</td>
-      <td title="${esc(rewardLabel)}">${trunc(rewardLabel, 22)}</td>
+      <td style="display:flex;align-items:center;justify-content:space-between;gap:8px;" onclick="event.stopPropagation()" title="${esc(rewardLabel)}">
+        <span>${trunc(rewardLabel, 22)}</span>
+        ${rewardLabel.length > 22 ? `<button class="btn-icon" style="background:#312e81;color:#a5b4fc;padding:4px 6px;flex-shrink:0;" onclick="toggleRewardsRow(${m.rowid})" title="View all rewards"><i data-lucide="expand" style="width:12px;height:12px;"></i></button>` : ''}
+      </td>
       <td style="text-align:center;" onclick="event.stopPropagation()">
         <button class="btn-icon btn-edit" onclick="openEditDrawer(${m.rowid})" title="Edit">
           <i data-lucide="pencil" style="width:13px;height:13px;"></i>
@@ -635,7 +645,21 @@ function renderTable() {
           <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
         </button>
       </td>`;
+    const rewardDetailRow = document.createElement('tr');
+    rewardDetailRow.className = 'reward-detail-row';
+    rewardDetailRow.id = `reward-detail-${m.rowid}`;
+    rewardDetailRow.innerHTML = `
+      <td colspan="10" class="reward-detail-cell">
+        <div style="padding: 8px 0;">
+          <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">All Rewards (${rewardLabel.split(', ').length})</div>
+          <div class="reward-detail-list">
+            ${rewardLabel.split(', ').map(r => `<span class="reward-item-tag">${esc(r)}</span>`).join('')}
+          </div>
+        </div>
+      </td>
+    `;
     tbody.appendChild(tr);
+    tbody.appendChild(rewardDetailRow);
   });
   lucide.createIcons();
 }
@@ -1262,6 +1286,15 @@ function closeConfirm() {
   pendingDeleteId = null;
   document.getElementById('confirmModal').classList.remove('open');
 }
+function toggleRewardsRow(rowid) {
+  const detailRow = document.getElementById(`reward-detail-${rowid}`);
+  if (detailRow) {
+    detailRow.classList.toggle('open');
+  }
+}
+function closeRewardsModal() {
+  // Kept for backward compatibility, now does nothing
+}
 async function doDelete() {
   if (!pendingDeleteId) return;
   try {
@@ -1333,3 +1366,4 @@ if (window.innerWidth <= 768) {
 </script>
 </body>
 </html>
+
