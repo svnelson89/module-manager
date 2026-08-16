@@ -1802,7 +1802,13 @@ function rewardArrayLabel(reward) {
   if (ids.length === 0) return '';
   return ids.map(id => {
     const item = allItems.find(i => String(itemPk(i)) === String(id));
-    return item ? itemDisplay(item) : `ID:${id}`;
+    if (!item) return `ID:${id}`;
+    let label = itemDisplay(item);
+    if (item.item_property) {
+      const propName = itemPropertyName(item.item_property);
+      if (propName && propName !== '—') label += ` (${propName})`;
+    }
+    return label;
   }).filter(Boolean).join(', ');
 }
 
