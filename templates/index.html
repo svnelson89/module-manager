@@ -618,12 +618,22 @@ function renderTable() {
   tbody.innerHTML = '';
   filtered.forEach(m => {
     const rewardLabel = rewardArrayLabel(m.reward);
+    const rewardArray = rewardLabel ? rewardLabel.split(', ') : [];
+    const rewardCount = rewardArray.length;
     const lastRun     = formatDate(m['last-run']);
     const tr = document.createElement('tr');
     if (m.rowid === selectedRow) tr.classList.add('selected');
     tr.title = m.name || '';
     tr.onclick = () => selectRow(m);
     const tierTags = getTierArray(m.tier).map(t => `<span class="badge badge-tier-${t}">T${t}</span>`).join(' ') || '—';
+    let rewardCellContent = '';
+    if (rewardCount === 0) {
+      rewardCellContent = '—';
+    } else if (rewardCount === 1) {
+      rewardCellContent = `<span>${esc(rewardArray[0])}</span>`;
+    } else {
+      rewardCellContent = `<span>${esc(rewardArray[0])}, ${esc(rewardArray[1])}</span><button class="btn-icon" style="background:#312e81;color:#a5b4fc;padding:4px 6px;flex-shrink:0;" onclick="toggleRewardsRow(${m.rowid})" title="View all ${rewardCount} rewards"><i data-lucide="expand" style="width:12px;height:12px;"></i></button>`;
+    }
     tr.innerHTML = `
       <td style="font-weight:600;color:#a5b4fc;">${esc(m.code)}</td>
       <td title="${esc(m.name)}">${trunc(m.name, 28)}</td>
@@ -633,8 +643,7 @@ function renderTable() {
       <td>${esc(m['running-time'])}</td>
       <td style="color:var(--muted);">${lastRun}</td>
       <td style="display:flex;align-items:center;justify-content:space-between;gap:8px;" onclick="event.stopPropagation()" title="${esc(rewardLabel)}">
-        <span>${trunc(rewardLabel, 22)}</span>
-        ${rewardLabel.length > 22 ? `<button class="btn-icon" style="background:#312e81;color:#a5b4fc;padding:4px 6px;flex-shrink:0;" onclick="toggleRewardsRow(${m.rowid})" title="View all rewards"><i data-lucide="expand" style="width:12px;height:12px;"></i></button>` : ''}
+        ${rewardCellContent}
       </td>
       <td style="text-align:center;" onclick="event.stopPropagation()">
         <button class="btn-icon btn-edit" onclick="openEditDrawer(${m.rowid})" title="Edit">
@@ -645,21 +654,23 @@ function renderTable() {
           <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
         </button>
       </td>`;
-    const rewardDetailRow = document.createElement('tr');
-    rewardDetailRow.className = 'reward-detail-row';
-    rewardDetailRow.id = `reward-detail-${m.rowid}`;
-    rewardDetailRow.innerHTML = `
-      <td colspan="10" class="reward-detail-cell">
-        <div style="padding: 8px 0;">
-          <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">All Rewards (${rewardLabel.split(', ').length})</div>
-          <div class="reward-detail-list">
-            ${rewardLabel.split(', ').map(r => `<span class="reward-item-tag">${esc(r)}</span>`).join('')}
-          </div>
-        </div>
-      </td>
-    `;
     tbody.appendChild(tr);
-    tbody.appendChild(rewardDetailRow);
+    if (rewardCount > 1) {
+      const rewardDetailRow = document.createElement('tr');
+      rewardDetailRow.className = 'reward-detail-row';
+      rewardDetailRow.id = `reward-detail-${m.rowid}`;
+      rewardDetailRow.innerHTML = `
+        <td colspan="10" class="reward-detail-cell">
+          <div style="padding: 8px 0;">
+            <div style="font-size: 11px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600;">All Rewards (${rewardCount})</div>
+            <div class="reward-detail-list">
+              ${rewardArray.map(r => `<span class="reward-item-tag">${esc(r)}</span>`).join('')}
+            </div>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(rewardDetailRow);
+    }
   });
   lucide.createIcons();
 }
