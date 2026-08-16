@@ -440,6 +440,97 @@ def create_item():
         return jsonify({"error": str(e)}), 400
 
 
+@app.route("/api/items/<int:item_id>", methods=["PUT"])
+def update_item(item_id):
+    data = request.get_json(force=True)
+    if not data:
+        return jsonify({"error": "Empty request body"}), 400
+    try:
+        db     = get_db()
+        schema = _get_items_schema(db)
+        if schema is None:
+            return jsonify({"error": "items table not found"}), 404
+
+        valid_cols  = schema['data_cols']
+        update_cols = [c for c in valid_cols if c in data]
+        if not update_cols:
+            return jsonify({"error": f"No valid column values provided. items table has these columns: {valid_cols}"}), 400
+
+        set_clause = ', '.join(f'"{c}"=?' for c in update_cols)
+        values     = [data[c] if data[c] != '' else None for c in update_cols]
+        pk_col     = schema['pk_col']
+        values.append(item_id)
+
+        db.execute(f'UPDATE items SET {set_clause} WHERE "{pk_col}"=?', values)
+        db.commit()
+        updated_row = db.execute(f'SELECT * FROM items WHERE "{pk_col}"=?', (item_id,)).fetchone()
+        if updated_row is None:
+            return jsonify({"error": "Item not found"}), 404
+        row = dict(updated_row)
+        row['_pk']      = item_id
+        row['_display'] = row.get(schema['display_col']) or ''
+        return jsonify({"success": True, "item": row})
+    except sqlite3.OperationalError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/items/<int:item_id>", methods=["DELETE"])
+def delete_item(item_id):
+    db     = get_db()
+    schema = _get_items_schema(db)
+    if schema is None:
+        return jsonify({"error": "items table not found"}), 404
+
+    # Strip this item id from any module's reward list before deleting it.
+    mod_schema = _get_modules_schema(db)
+    if mod_schema:
+        reward_col = mod_schema['field_map'].get('reward')
+        if reward_col:
+            rows = rows_to_list(db.execute(f'SELECT rowid as _rowid_, "{reward_col}" as reward FROM modules'))
+            for row in rows:
+                ids = _parse_reward(row['reward'])
+                if item_id in ids:
+                    new_ids = [i for i in ids if i != item_id]
+                    new_val = _serialize_reward(new_ids)
+                    db.execute(f'UPDATE modules SET "{reward_col}"=? WHERE rowid=?', (new_val, row['_rowid_']))
+
+    pk_col = schema['pk_col']
+    db.execute(f'DELETE FROM items WHERE "{pk_col}"=?', (item_id,))
+    db.commit()
+    return jsonify({"success": True})
+
+
+# ---------------------------------------------------------------------------
+# Item Properties API
+# ---------------------------------------------------------------------------
+
+@app.route("/api/item-properties", methods=["GET"])
+def get_item_properties():
+    try:
+        db   = get_db()
+        rows = rows_to_list(db.execute("SELECT * FROM item_properties ORDER BY property_name"))
+        return jsonify(rows)
+    except sqlite3.OperationalError:
+        return jsonify([])
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 503
+
+
+@app.route("/api/item-properties", methods=["POST"])
+def create_item_property():
+    data = request.get_json(force=True)
+    name = (data or {}).get('property_name', '').strip()
+    if not name:
+        return jsonify({"error": "property_name is required"}), 400
+    try:
+        db  = get_db()
+        cur = db.execute("INSERT INTO item_properties (property_name) VALUES (?)", (name,))
+        db.commit()
+        return jsonify({"success": True, "id": cur.lastrowid, "property_name": name}), 201
+    except sqlite3.OperationalError as e:
+        return jsonify({"error": str(e)}), 400
+
+
 # ---------------------------------------------------------------------------
 # Health + schema debug
 # ---------------------------------------------------------------------------

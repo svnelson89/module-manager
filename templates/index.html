@@ -34,10 +34,10 @@
     #navbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 20px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 50; }
     #statusbar { height: 30px; background: #12141e; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; font-size: 12px; flex-shrink: 0; }
     #main { display: flex; flex: 1; overflow: hidden; }
-    #sidebar { width: 260px; min-width: 260px; background: var(--card); border-right: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-    #content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    #sidebar, #itemsSidebar { width: 260px; min-width: 260px; background: var(--card); border-right: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    #content, #itemsContent { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-    #tableWrap { flex: 1; overflow: auto; }
+    #tableWrap, #itemsTableWrap { flex: 1; overflow: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     thead th { position: sticky; top: 0; background: #12141e; padding: 10px 12px; text-align: left; color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
     thead th:hover { color: var(--text); }
@@ -83,6 +83,11 @@
     #drawerBody { padding: 20px; overflow-y: auto; flex: 1; }
     #drawerFooter { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0; }
 
+    #itemDrawer { position: fixed; top: 0; right: 0; height: 100%; width: 500px; background: var(--card); border-left: 1px solid var(--border); z-index: 100; transform: translateX(100%); transition: transform .3s ease; display: flex; flex-direction: column; overflow: hidden; }
+    #itemDrawer.open { transform: translateX(0); }
+    #itemDrawerOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99; display: none; }
+    #itemDrawerOverlay.open { display: block; }
+
     #detailStrip { background: var(--card); border-top: 2px solid var(--accent); padding: 16px 20px; display: none; flex-shrink: 0; max-height: 240px; overflow-y: auto; }
     #detailStrip.open { display: block; }
 
@@ -102,6 +107,14 @@
     #addItemModal { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300; display: none; align-items: center; justify-content: center; }
     #addItemModal.open { display: flex; }
     #addItemBox { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 28px; width: 400px; }
+
+    /* Tab switcher (Modules / Items) */
+    .tab-switcher { display: flex; gap: 3px; background: #12141e; border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+    .tab-btn { border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 6px 14px; font-size: 13px; font-weight: 600; transition: background .15s, color .15s; display: inline-flex; align-items: center; gap: 6px; }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { background: var(--accent); color: #fff; }
+    .app-view { display: none; flex: 1; overflow: hidden; width: 100%; }
+    .app-view.active { display: flex; }
 
     /* Reward typeahead */
     .reward-wrap { position: relative; }
@@ -142,14 +155,14 @@
 
     label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 5px; }
 
-    #emptyState { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); gap: 10px; padding: 60px; text-align: center; }
+    #emptyState, #itemsEmptyState { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); gap: 10px; padding: 60px; text-align: center; }
     .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
-      #sidebar { display: none; }
-      #sidebar.mob-open { display: flex; position: fixed; top: 86px; left: 0; bottom: 0; z-index: 40; }
-      #drawer { width: 100%; }
+      #sidebar, #itemsSidebar { display: none; }
+      #sidebar.mob-open, #itemsSidebar.mob-open { display: flex; position: fixed; top: 86px; left: 0; bottom: 0; z-index: 40; }
+      #drawer, #itemDrawer { width: 100%; }
     }
   </style>
 </head>
@@ -170,9 +183,20 @@
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
+    <div class="tab-switcher">
+      <button id="tabModulesBtn" class="tab-btn active" onclick="switchTab('modules')">
+        <i data-lucide="book-open" style="width:14px;height:14px;"></i> Modules
+      </button>
+      <button id="tabItemsBtn" class="tab-btn" onclick="switchTab('items')">
+        <i data-lucide="package" style="width:14px;height:14px;"></i> Items
+      </button>
+    </div>
     <span id="recordBadge" style="background:#1e1b4b;color:#a5b4fc;border:1px solid #3730a3;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;">— Modules</span>
-    <button class="btn btn-primary btn-sm" onclick="openAddDrawer()">
+    <button id="btnAddModule" class="btn btn-primary btn-sm" onclick="openAddDrawer()">
       <i data-lucide="plus" style="width:14px;height:14px;"></i> Add Module
+    </button>
+    <button id="btnAddItemTab" class="btn btn-primary btn-sm" style="display:none;" onclick="openAddItemDrawer()">
+      <i data-lucide="plus" style="width:14px;height:14px;"></i> Add Item
     </button>
     <button class="btn btn-ghost btn-sm" onclick="loadData()" title="Refresh from database">
       <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
@@ -190,6 +214,7 @@
 
 <!-- ===== MAIN ===== -->
 <div id="main">
+  <div id="modulesView" class="app-view active">
   <!-- SIDEBAR -->
   <div id="sidebar">
     <button class="btn btn-primary" style="width:100%;" onclick="openAddDrawer()">
@@ -310,6 +335,68 @@
             <i data-lucide="x" style="width:13px;height:13px;"></i>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <!-- ===== ITEMS VIEW ===== -->
+  <div id="itemsView" class="app-view">
+    <!-- ITEMS SIDEBAR -->
+    <div id="itemsSidebar">
+      <button class="btn btn-primary" style="width:100%;" onclick="openAddItemDrawer()">
+        <i data-lucide="plus" style="width:15px;height:15px;"></i> Add New Item
+      </button>
+      <div>
+        <label>Search</label>
+        <input id="itemSearchInput" class="field" placeholder="Item or unique name…" oninput="applyItemFilters()" />
+      </div>
+      <div>
+        <label>Filter by Property</label>
+        <select id="itemFilterProperty" class="field" onchange="applyItemFilters()">
+          <option value="">All Properties</option>
+        </select>
+      </div>
+      <div>
+        <label>Sort By</label>
+        <select id="itemSortField" class="field" onchange="applyItemFilters()">
+          <option value="item_name">Item Name</option>
+          <option value="unique_name">Unique Name</option>
+        </select>
+      </div>
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;">Stats</div>
+        <div class="stat-card">
+          <div class="stat-label">Total Items</div>
+          <div class="stat-value" id="itemStatTotal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ITEMS CONTENT -->
+    <div id="itemsContent">
+      <div id="itemsTableWrap">
+        <div id="itemsEmptyState" style="display:none;">
+          <i data-lucide="package" style="width:48px;height:48px;color:var(--border);"></i>
+          <div style="font-size:16px;font-weight:600;color:var(--text);" id="itemsEmptyTitle">No items found</div>
+          <div id="itemsEmptySubtitle" style="font-size:13px;">Add your first item using the button above</div>
+        </div>
+        <div id="itemsLoadingState" style="display:none;align-items:center;justify-content:center;height:200px;gap:12px;">
+          <div class="spinner"></div>
+          <span style="color:var(--muted);font-size:14px;">Loading items…</span>
+        </div>
+        <table id="itemsTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>Item Name</th>
+              <th>Unique Name</th>
+              <th>Property</th>
+              <th>DnDBeyond Link</th>
+              <th>Notes</th>
+              <th style="width:90px;text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="itemsTableBody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -447,13 +534,74 @@
   </div>
 </div>
 
+<!-- ===== ITEM DRAWER OVERLAY ===== -->
+<div id="itemDrawerOverlay" onclick="closeItemDrawer()"></div>
+
+<!-- ===== ITEM ADD/EDIT DRAWER ===== -->
+<div id="itemDrawer">
+  <div id="drawerHeader">
+    <div style="font-weight:700;font-size:15px;" id="itemDrawerTitle">Add Item</div>
+    <button class="btn-icon btn-ghost" onclick="closeItemDrawer()" style="background:transparent;color:var(--muted);border:none;cursor:pointer;">
+      <i data-lucide="x" style="width:18px;height:18px;"></i>
+    </button>
+  </div>
+  <div id="drawerBody">
+    <form id="itemForm" onsubmit="saveItem(event)">
+      <input type="hidden" id="editItemPk" />
+
+      <div>
+        <label for="fItemName">Item Name <span style="color:var(--danger);">*</span></label>
+        <input id="fItemName" class="field" placeholder="e.g. Ring of Fire Resistance" required />
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="fUniqueName">Unique Name</label>
+        <input id="fUniqueName" class="field" placeholder="Optional alternate/unique name" />
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="fItemProperty">Property</label>
+        <div style="display:flex;gap:6px;">
+          <select id="fItemProperty" class="field" style="flex:1;">
+            <option value="">— None —</option>
+          </select>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addNewItemProperty()" title="Add new property">
+            <i data-lucide="plus" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="fDndLink">DnDBeyond Link</label>
+        <div style="display:flex;gap:6px;">
+          <input id="fDndLink" class="field" type="url" placeholder="https://…" style="flex:1;" />
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openItemLink()" title="Open link">
+            <i data-lucide="external-link" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label for="fItemNotes">Notes</label>
+        <textarea id="fItemNotes" class="field" rows="4" placeholder="Freeform notes…" style="resize:vertical;"></textarea>
+      </div>
+    </form>
+  </div>
+  <div id="drawerFooter">
+    <button type="button" class="btn btn-ghost" onclick="closeItemDrawer()">Cancel</button>
+    <button type="submit" form="itemForm" class="btn btn-primary">
+      <i data-lucide="save" style="width:14px;height:14px;"></i> Save Item
+    </button>
+  </div>
+</div>
+
 <!-- ===== DELETE CONFIRM MODAL ===== -->
 <div id="confirmModal">
   <div id="confirmBox">
     <div style="margin-bottom:8px;">
       <i data-lucide="trash-2" style="width:36px;height:36px;color:var(--danger);"></i>
     </div>
-    <div style="font-size:17px;font-weight:700;margin-bottom:6px;">Delete Module?</div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:6px;" id="confirmTitle">Delete Module?</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">
       This will permanently remove <strong id="delModuleName" style="color:var(--text);"></strong> from the database.
     </div>
@@ -544,10 +692,11 @@ async function safeJson(res) {
 async function loadData() {
   showLoading();
   try {
-    const [mRes, iRes, sRes] = await Promise.all([
+    const [mRes, iRes, sRes, pRes] = await Promise.all([
       fetch('/api/modules'),
       fetch('/api/items'),
-      fetch('/api/items/schema')
+      fetch('/api/items/schema'),
+      fetch('/api/item-properties')
     ]);
     const mJson = await safeJson(mRes);
     if (!mJson.ok) {
@@ -560,11 +709,15 @@ async function loadData() {
     allItems    = iJson.ok ? iJson.data : [];
     const sJson = await safeJson(sRes);
     itemsSchema = sJson.ok ? sJson.data : null;
+    const pJson = await safeJson(pRes);
+    allItemProperties = pJson.ok ? pJson.data : [];
     buildAddItemForm();
+    populateItemPropertyOptions();
     applyFilters();
+    applyItemFilters();
     updateStats();
     setStatus(true, `${allModules.length} module${allModules.length !== 1 ? 's' : ''} • ${allItems.length} items loaded`);
-    document.getElementById('recordBadge').textContent = `${filtered.length} Modules`;
+    updateRecordBadge();
   } catch(e) {
     setStatus(false, 'Cannot reach server — is Flask running?');
     showEmpty('Server unreachable', 'Make sure Flask is running on this host.');
@@ -602,7 +755,7 @@ function applyFilters() {
     return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
   });
   renderTable();
-  document.getElementById('recordBadge').textContent = `${filtered.length} Modules`;
+  updateRecordBadge();
 }
 
 function renderTable() {
@@ -1289,6 +1442,7 @@ function confirmDelete(rowid) {
   const m = allModules.find(x => x.rowid === rowid);
   if (!m) return;
   pendingDeleteId = rowid;
+  document.getElementById('confirmTitle').textContent = 'Delete Module?';
   document.getElementById('delModuleName').textContent = `${m.code} — ${m.name}`;
   document.getElementById('confirmModal').classList.add('open');
   document.getElementById('confirmDelBtn').onclick = doDelete;
@@ -1315,6 +1469,224 @@ async function doDelete() {
     toast('Module deleted.', 'success');
     closeConfirm();
     if (selectedRow === pendingDeleteId) closeDetail();
+    await loadData();
+  } catch(err) {
+    toast(`Error: ${err.message}`, 'error');
+    closeConfirm();
+  }
+}
+
+// -----------------------------------------------------------------------
+// Items view (add / edit / delete)
+// -----------------------------------------------------------------------
+let allItemProperties = [];
+let itemsFiltered      = [];
+let pendingDeleteItemPk = null;
+
+function switchTab(tab) {
+  const isModules = tab === 'modules';
+  document.getElementById('modulesView').classList.toggle('active', isModules);
+  document.getElementById('itemsView').classList.toggle('active', !isModules);
+  document.getElementById('tabModulesBtn').classList.toggle('active', isModules);
+  document.getElementById('tabItemsBtn').classList.toggle('active', !isModules);
+  document.getElementById('btnAddModule').style.display  = isModules ? '' : 'none';
+  document.getElementById('btnAddItemTab').style.display = isModules ? 'none' : '';
+  if (!isModules) {
+    applyItemFilters();
+  }
+  updateRecordBadge();
+}
+
+function updateRecordBadge() {
+  const badge = document.getElementById('recordBadge');
+  const isModules = document.getElementById('modulesView').classList.contains('active');
+  badge.textContent = isModules
+    ? `${filtered.length} Modules`
+    : `${itemsFiltered.length} Items`;
+}
+
+function populateItemPropertyOptions() {
+  const selects = [document.getElementById('fItemProperty'), document.getElementById('itemFilterProperty')];
+  selects.forEach(sel => {
+    if (!sel) return;
+    const isFilter   = sel.id === 'itemFilterProperty';
+    const currentVal = sel.value;
+    sel.innerHTML = isFilter
+      ? '<option value="">All Properties</option>'
+      : '<option value="">— None —</option>';
+    allItemProperties.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.property_name;
+      sel.appendChild(opt);
+    });
+    sel.value = currentVal;
+  });
+}
+
+function itemPropertyName(propId) {
+  if (!propId) return '—';
+  const p = allItemProperties.find(x => String(x.id) === String(propId));
+  return p ? p.property_name : '—';
+}
+
+async function addNewItemProperty() {
+  const name = window.prompt('New property name:');
+  if (!name || !name.trim()) return;
+  try {
+    const res = await fetch('/api/item-properties', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ property_name: name.trim() })
+    });
+    const { ok, data } = await safeJson(res);
+    if (!ok) throw new Error(data.error || 'Failed to add property');
+    allItemProperties.push({ id: data.id, property_name: data.property_name });
+    allItemProperties.sort((a, b) => a.property_name.localeCompare(b.property_name));
+    populateItemPropertyOptions();
+    document.getElementById('fItemProperty').value = data.id;
+    toast(`Property "${data.property_name}" added.`, 'success');
+  } catch(err) {
+    toast(`Error: ${err.message}`, 'error');
+  }
+}
+
+function applyItemFilters() {
+  const q    = document.getElementById('itemSearchInput').value.toLowerCase();
+  const prop = document.getElementById('itemFilterProperty').value;
+  const sortField = document.getElementById('itemSortField').value;
+
+  itemsFiltered = allItems.filter(item => {
+    const name   = String(item.item_name || '').toLowerCase();
+    const unique = String(item.unique_name || '').toLowerCase();
+    if (q && !name.includes(q) && !unique.includes(q)) return false;
+    if (prop && String(item.item_property || '') !== prop) return false;
+    return true;
+  });
+  itemsFiltered.sort((a, b) => String(a[sortField] || '').localeCompare(String(b[sortField] || '')));
+  renderItemsTable();
+  document.getElementById('itemStatTotal').textContent = allItems.length;
+  updateRecordBadge();
+}
+
+function renderItemsTable() {
+  document.getElementById('itemsLoadingState').style.display = 'none';
+  if (itemsFiltered.length === 0) {
+    document.getElementById('itemsTable').style.display = 'none';
+    document.getElementById('itemsEmptyState').style.display = 'flex';
+    return;
+  }
+  document.getElementById('itemsEmptyState').style.display = 'none';
+  document.getElementById('itemsTable').style.display = '';
+  const tbody = document.getElementById('itemsTableBody');
+  tbody.innerHTML = '';
+  itemsFiltered.forEach(item => {
+    const pk = item.id;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600;color:#a5b4fc;">${esc(item.item_name)}</td>
+      <td>${esc(item.unique_name || '—')}</td>
+      <td><span class="badge badge-indigo">${esc(itemPropertyName(item.item_property))}</span></td>
+      <td>${item.dndbeyond_link ? `<a href="${esc(item.dndbeyond_link)}" target="_blank" style="color:#818cf8;text-decoration:underline;" onclick="event.stopPropagation()">Open Link</a>` : '—'}</td>
+      <td title="${esc(item.notes || '')}">${trunc(item.notes, 30)}</td>
+      <td style="text-align:center;" onclick="event.stopPropagation()">
+        <button class="btn-icon btn-edit" onclick="openEditItemDrawer(${pk})" title="Edit">
+          <i data-lucide="pencil" style="width:13px;height:13px;"></i>
+        </button>
+        &nbsp;
+        <button class="btn-icon btn-del" onclick="confirmDeleteItem(${pk})" title="Delete">
+          <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  lucide.createIcons();
+}
+
+function openAddItemDrawer() {
+  document.getElementById('itemDrawerTitle').textContent = 'Add Item';
+  document.getElementById('editItemPk').value = '';
+  document.getElementById('itemForm').reset();
+  openItemDrawer();
+}
+
+function openEditItemDrawer(pk) {
+  const item = allItems.find(x => String(x.id) === String(pk));
+  if (!item) return;
+  document.getElementById('itemDrawerTitle').textContent = `Edit Item: ${item.item_name}`;
+  document.getElementById('editItemPk').value    = pk;
+  document.getElementById('fItemName').value     = item.item_name    || '';
+  document.getElementById('fUniqueName').value   = item.unique_name  || '';
+  document.getElementById('fItemProperty').value = item.item_property || '';
+  document.getElementById('fDndLink').value      = item.dndbeyond_link || '';
+  document.getElementById('fItemNotes').value    = item.notes        || '';
+  openItemDrawer();
+}
+
+function openItemDrawer() {
+  document.getElementById('itemDrawer').classList.add('open');
+  document.getElementById('itemDrawerOverlay').classList.add('open');
+  document.getElementById('fItemName').focus();
+  lucide.createIcons();
+}
+
+function closeItemDrawer() {
+  document.getElementById('itemDrawer').classList.remove('open');
+  document.getElementById('itemDrawerOverlay').classList.remove('open');
+}
+
+function openItemLink() {
+  const url = document.getElementById('fDndLink').value.trim();
+  if (url) window.open(url, '_blank');
+}
+
+async function saveItem(e) {
+  e.preventDefault();
+  const pk = document.getElementById('editItemPk').value;
+  const payload = {
+    'item_name':      document.getElementById('fItemName').value.trim(),
+    'unique_name':    document.getElementById('fUniqueName').value.trim()   || null,
+    'item_property':  document.getElementById('fItemProperty').value       || null,
+    'dndbeyond_link': document.getElementById('fDndLink').value.trim()     || null,
+    'notes':          document.getElementById('fItemNotes').value.trim()   || null,
+  };
+  try {
+    const url    = pk ? `/api/items/${pk}` : '/api/items';
+    const method = pk ? 'PUT' : 'POST';
+    const res    = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const { ok, data } = await safeJson(res);
+    if (!ok) throw new Error(data.error || 'Save failed');
+    toast(pk ? 'Item updated.' : 'Item added.', 'success');
+    closeItemDrawer();
+    await loadData();
+  } catch(err) {
+    toast(`Error: ${err.message}`, 'error');
+  }
+}
+
+function confirmDeleteItem(pk) {
+  const item = allItems.find(x => String(x.id) === String(pk));
+  if (!item) return;
+  pendingDeleteItemPk = pk;
+  document.getElementById('confirmTitle').textContent = 'Delete Item?';
+  document.getElementById('delModuleName').textContent = item.item_name;
+  document.getElementById('confirmModal').classList.add('open');
+  document.getElementById('confirmDelBtn').onclick = doDeleteItem;
+}
+
+async function doDeleteItem() {
+  if (!pendingDeleteItemPk) return;
+  try {
+    const res  = await fetch(`/api/items/${pendingDeleteItemPk}`, { method: 'DELETE' });
+    const { ok, data } = await safeJson(res);
+    if (!ok) throw new Error(data.error || 'Delete failed');
+    toast('Item deleted.', 'success');
+    pendingDeleteItemPk = null;
+    closeConfirm();
     await loadData();
   } catch(err) {
     toast(`Error: ${err.message}`, 'error');
