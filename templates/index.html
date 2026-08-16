@@ -642,7 +642,7 @@ function renderTable() {
       <td>${trunc(m['season-setting'], 14)}</td>
       <td>${esc(m['running-time'])}</td>
       <td style="color:var(--muted);">${lastRun}</td>
-      <td style="display:flex;align-items:center;justify-content:space-between;gap:8px;" onclick="event.stopPropagation()" title="${esc(rewardLabel)}">
+      <td style="display:flex;align-items:center;justify-content:flex-start;gap:8px;max-width:none;overflow:visible;white-space:normal;text-overflow:clip;" onclick="event.stopPropagation()" title="${esc(rewardLabel)}">
         ${rewardCellContent}
       </td>
       <td style="text-align:center;" onclick="event.stopPropagation()">
