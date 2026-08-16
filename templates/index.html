@@ -422,8 +422,8 @@
           <label for="fCode">Code <span style="color:var(--danger);">*</span></label>
           <input id="fCode" class="field" placeholder="e.g. DDAL-01" required />
         </div>
-        <div>
-          <label for="fTier">Tier <span style="color:var(--danger);">*</span></label>
+        <div id="fTierWrap">
+          <label for="fTier" id="fTierLabel">Tier <span style="color:var(--danger);">*</span></label>
           <input id="fTier" class="field" type="number" min="1" max="4" placeholder="1–4" required />
         </div>
       </div>
@@ -438,8 +438,8 @@
           <label for="fSeason">Season / Setting</label>
           <input id="fSeason" class="field" placeholder="e.g. Season 8" />
         </div>
-        <div>
-          <label for="fApl">APL <span style="color:var(--danger);">*</span></label>
+        <div id="fAplWrap">
+          <label for="fApl" id="fAplLabel">APL <span style="color:var(--danger);">*</span></label>
           <input id="fApl" class="field" type="number" min="1" max="20" placeholder="1–20" required />
         </div>
       </div>
@@ -947,8 +947,8 @@ function openAddDrawer() {
   
   // Ensure single-value mode for new modules
   document.getElementById('fEpic').checked = false;
-  document.getElementById('fTier').style.display = 'block';
-  document.getElementById('fApl').style.display = 'block';
+  document.getElementById('fTierWrap').style.display = 'block';
+  document.getElementById('fAplWrap').style.display = 'block';
   document.getElementById('tierMultiContainer').style.display = 'none';
   document.getElementById('aplMultiContainer').style.display = 'none';
   
@@ -1010,8 +1010,8 @@ function openEditDrawer(rowid) {
       }
     }
     // Show multi-value inputs
-    document.getElementById('fTier').style.display = 'none';
-    document.getElementById('fApl').style.display = 'none';
+    document.getElementById('fTierWrap').style.display = 'none';
+    document.getElementById('fAplWrap').style.display = 'none';
     document.getElementById('tierMultiContainer').style.display = 'block';
     document.getElementById('aplMultiContainer').style.display = 'block';
     renderTierChips();
@@ -1020,8 +1020,8 @@ function openEditDrawer(rowid) {
     // Show single-value inputs
     document.getElementById('fTier').value = m.tier || '';
     document.getElementById('fApl').value  = m.apl  || '';
-    document.getElementById('fTier').style.display = 'block';
-    document.getElementById('fApl').style.display = 'block';
+    document.getElementById('fTierWrap').style.display = 'block';
+    document.getElementById('fAplWrap').style.display = 'block';
     document.getElementById('tierMultiContainer').style.display = 'none';
     document.getElementById('aplMultiContainer').style.display = 'none';
   }
@@ -1189,8 +1189,8 @@ function addReward(id) {
 // -----------------------------------------------------------------------
 function onEpicToggle() {
   const isEpic = document.getElementById('fEpic').checked;
-  const tierSingleContainer = document.querySelector('[style*="grid-template-columns:1fr 1fr;gap:14px;"]') || 
-                              document.querySelectorAll('div')[0];
+  const tierWrap = document.getElementById('fTierWrap');
+  const aplWrap  = document.getElementById('fAplWrap');
   const tierInput = document.getElementById('fTier');
   const aplInput = document.getElementById('fApl');
   const tierMultiContainer = document.getElementById('tierMultiContainer');
@@ -1198,8 +1198,8 @@ function onEpicToggle() {
   
   if (isEpic) {
     // Switch to multi-value mode
-    tierInput.style.display = 'none';
-    aplInput.style.display = 'none';
+    tierWrap.style.display = 'none';
+    aplWrap.style.display = 'none';
     tierMultiContainer.style.display = 'block';
     aplMultiContainer.style.display = 'block';
     
@@ -1216,8 +1216,8 @@ function onEpicToggle() {
     renderAplChips();
   } else {
     // Switch to single-value mode
-    tierInput.style.display = 'block';
-    aplInput.style.display = 'block';
+    tierWrap.style.display = 'block';
+    aplWrap.style.display = 'block';
     tierMultiContainer.style.display = 'none';
     aplMultiContainer.style.display = 'none';
     
