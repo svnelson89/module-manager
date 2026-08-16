@@ -1,0 +1,7 @@
+In the modules database, add a True/False column to indicate epic.  If the epic column if True, need to be able to add multiple tiers and APL to the module
+
+In the main view on each row, add a toggle to show all of the rewards and not have them truncated
+
+Need a button, to open a tab with the ability to add, edit or delete items
+
+In the stats section on the lower right of the page, next to total modules, add a view for total items
