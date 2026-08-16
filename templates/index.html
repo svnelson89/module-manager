@@ -1054,7 +1054,11 @@ function itemPk(item) {
 }
 // Get the display label for an item row
 function itemDisplay(item) {
-  return item._display || item.name || String(itemPk(item));
+  const baseName = item.item_name || item._display || item.name || String(itemPk(item));
+  if (item.unique_name && String(item.unique_name).trim()) {
+    return `${item.unique_name} (${baseName})`;
+  }
+  return baseName;
 }
 
 function renderRewardChips() {
