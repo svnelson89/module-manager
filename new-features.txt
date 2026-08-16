@@ -1,7 +1,14 @@
-In the modules database, add a True/False column to indicate epic.  If the epic column if True, need to be able to add multiple tiers and APL to the module
+* In the stats section on the lower right of the page, next to total modules, add a view for total items
 
-In the main view on each row, add a toggle to show all of the rewards and not have them truncated
+* Consumable items
+** DB - items table add column for consumable
+** FrontEnd - Add checkbox on item pages for consumable
 
-Need a button, to open a tab with the ability to add, edit or delete items
+* On the modules page, the sort by filter is not working 
 
-In the stats section on the lower right of the page, next to total modules, add a view for total items
+* On the modules page, move the Season Column to the far left
+
+* When adding modules, make sure APL value is only between 1-20
+
+* Item additions, need validation to ensure no exact duplicates get added, there needs to be some difference (i.e. unique name or property)
+
