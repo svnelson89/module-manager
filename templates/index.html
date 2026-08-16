@@ -790,7 +790,7 @@ function renderTable() {
     } else if (rewardCount === 1) {
       rewardCellContent = `<span>${esc(rewardArray[0])}</span>`;
     } else {
-      rewardCellContent = `<span>${esc(rewardArray[0])}, ${esc(rewardArray[1])}</span><button class="btn-icon" style="background:#312e81;color:#a5b4fc;padding:4px 6px;flex-shrink:0;" onclick="toggleRewardsRow(${m.rowid})" title="View all ${rewardCount} rewards"><i data-lucide="expand" style="width:12px;height:12px;"></i></button>`;
+      rewardCellContent = `<span>${esc(rewardArray[0])}</span><button class="btn-icon" style="background:#312e81;color:#a5b4fc;padding:4px 6px;flex-shrink:0;" onclick="toggleRewardsRow(${m.rowid})" title="View all ${rewardCount} rewards"><i data-lucide="expand" style="width:12px;height:12px;"></i></button>`;
     }
     tr.innerHTML = `
       <td style="font-weight:600;color:#a5b4fc;">${esc(m.code)}</td>
@@ -1071,7 +1071,7 @@ function renderRewardChips() {
   container.innerHTML = '';
   selectedRewardIds.forEach(id => {
     const item  = allItems.find(i => itemPk(i) === id || String(itemPk(i)) === String(id));
-    const label = item ? itemDisplay(item) : `ID:${id}`;
+    const label = item ? formatRewardItemLabel(item) : `ID:${id}`;
     const chip  = document.createElement('div');
     chip.className = 'reward-chip';
     chip.innerHTML = `<span>${esc(label)}</span><button type="button" class="chip-x" onclick="removeReward(${JSON.stringify(id)})" title="Remove">×</button>`;
@@ -1116,13 +1116,8 @@ function renderRewardDropdown(query) {
       el.className = 'dd-item';
       el.dataset.idx = idx;
       const pk  = itemPk(item);
-      const disp = itemDisplay(item);
-      // Build subtitle from all other columns that have values
-      const subParts = Object.entries(item)
-        .filter(([k,v]) => !k.startsWith('_') && v !== null && v !== '' && String(v) !== String(disp))
-        .map(([k,v]) => `${k}: ${v}`);
-      const sub = subParts.slice(0, 3).join(' · ') || `ID: ${pk}`;
-      el.innerHTML = `<span class="dd-name">${esc(disp)}</span><span class="dd-sub">${esc(sub)}</span>`;
+      const disp = formatRewardItemLabel(item);
+      el.innerHTML = `<span class="dd-name">${esc(disp)}</span>`;
       el.onmousedown = e => { e.preventDefault(); addReward(pk); };
       dd.appendChild(el);
     });
@@ -1825,19 +1820,23 @@ async function doDeleteItem() {
 // -----------------------------------------------------------------------
 // Reward helpers
 // -----------------------------------------------------------------------
+// Full display label for a reward item: unique_name (item_name) (property)
+function formatRewardItemLabel(item) {
+  let label = itemDisplay(item);
+  if (item.item_property) {
+    const propName = itemPropertyName(item.item_property);
+    if (propName && propName !== '—') label += ` (${propName})`;
+  }
+  return label;
+}
+
 function rewardArrayList(reward) {
   if (!reward) return [];
   const ids = Array.isArray(reward) ? reward : [reward];
   if (ids.length === 0) return [];
   return ids.map(id => {
     const item = allItems.find(i => String(itemPk(i)) === String(id));
-    if (!item) return `ID:${id}`;
-    let label = itemDisplay(item);
-    if (item.item_property) {
-      const propName = itemPropertyName(item.item_property);
-      if (propName && propName !== '—') label += ` (${propName})`;
-    }
-    return label;
+    return item ? formatRewardItemLabel(item) : `ID:${id}`;
   }).filter(Boolean);
 }
 
