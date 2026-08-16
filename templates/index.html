@@ -53,6 +53,10 @@
     .badge { display: inline-block; border-radius: 4px; padding: 2px 7px; font-size: 11px; font-weight: 700; text-align: center; }
     .badge-indigo { background: #312e81; color: #a5b4fc; }
     .badge-violet { background: #2e1065; color: #c4b5fd; }
+    .badge-tier-1 { background: #064e3b; color: #86efac; }
+    .badge-tier-2 { background: #713f12; color: #fcd34d; }
+    .badge-tier-3 { background: #7c2d12; color: #fed7aa; }
+    .badge-tier-4 { background: #7f1d1d; color: #fca5a5; }
 
     .btn-icon { border: none; cursor: pointer; border-radius: 5px; padding: 5px 7px; transition: background .15s; line-height: 1; display: inline-flex; align-items: center; }
     .btn-edit  { background: #312e81; color: #a5b4fc; }
@@ -98,6 +102,15 @@
     .reward-chip { display: inline-flex; align-items: center; gap: 5px; background: #1e1b4b; color: #a5b4fc; border: 1px solid #3730a3; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
     .reward-chip .chip-x { cursor: pointer; opacity: .7; line-height: 1; background: none; border: none; color: inherit; padding: 0; display: inline-flex; align-items: center; }
     .reward-chip .chip-x:hover { opacity: 1; }
+
+    /* Tier chips with color coding */
+    .tier-chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .tier-chip-1 { background: #064e3b; color: #86efac; border: 1px solid #10b981; }
+    .tier-chip-2 { background: #713f12; color: #fcd34d; border: 1px solid #f59e0b; }
+    .tier-chip-3 { background: #7c2d12; color: #fed7aa; border: 1px solid #f97316; }
+    .tier-chip-4 { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+    .tier-chip .chip-x { cursor: pointer; opacity: .7; line-height: 1; background: none; border: none; color: inherit; padding: 0; display: inline-flex; align-items: center; }
+    .tier-chip .chip-x:hover { opacity: 1; }
     #rewardDropdown { position: absolute; top: calc(100% + 3px); left: 0; right: 0; background: #1a1d27; border: 1px solid var(--border); border-radius: 8px; z-index: 400; display: none; max-height: 220px; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
     #rewardDropdown.open { display: block; }
     .dd-item { padding: 9px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 1px; }
@@ -337,6 +350,36 @@
         </div>
       </div>
 
+      <!-- Epic checkbox -->
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px;">
+        <input id="fEpic" type="checkbox" style="width:16px;height:16px;cursor:pointer;" onchange="onEpicToggle()" />
+        <label for="fEpic" style="margin-bottom:0;text-transform:none;cursor:pointer;">This is an Epic (allows multiple Tiers & APLs)</label>
+      </div>
+
+      <!-- Multi-value Tier field (shown when epic is true) -->
+      <div id="tierMultiContainer" style="display:none;margin-top:14px;">
+        <label>Tiers</label>
+        <div class="reward-wrap">
+          <div class="reward-chips" id="tierChips"></div>
+          <input id="tierMultiSearch" class="field" type="number" min="1" max="4" placeholder="Add tier (1–4)…"
+            autocomplete="off"
+            oninput="onTierMultiInput()"
+            onkeydown="onTierMultiKeydown(event)" />
+        </div>
+      </div>
+
+      <!-- Multi-value APL field (shown when epic is true) -->
+      <div id="aplMultiContainer" style="display:none;margin-top:14px;">
+        <label>APLs</label>
+        <div class="reward-wrap">
+          <div class="reward-chips" id="aplChips"></div>
+          <input id="aplMultiSearch" class="field" type="number" min="1" max="20" placeholder="Add APL (1–20)…"
+            autocomplete="off"
+            oninput="onAplMultiInput()"
+            onkeydown="onAplMultiKeydown(event)" />
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
         <div>
           <label for="fRunTime">Running Time</label>
@@ -454,6 +497,8 @@ let sortCol          = 'code';
 let sortDir          = 'asc';
 let selectedRow      = null;
 let selectedRewardIds = [];   // array of item PKs currently selected in form
+let selectedTierIds  = [];    // array of tier values for epic modules
+let selectedAplIds   = [];    // array of APL values for epic modules
 let ddFocusIndex     = -1;    // keyboard nav index in dropdown
 
 // -----------------------------------------------------------------------
@@ -571,10 +616,11 @@ function renderTable() {
     if (m.rowid === selectedRow) tr.classList.add('selected');
     tr.title = m.name || '';
     tr.onclick = () => selectRow(m);
+    const tierTags = getTierArray(m.tier).map(t => `<span class="badge badge-tier-${t}">T${t}</span>`).join(' ') || '—';
     tr.innerHTML = `
       <td style="font-weight:600;color:#a5b4fc;">${esc(m.code)}</td>
       <td title="${esc(m.name)}">${trunc(m.name, 28)}</td>
-      <td style="text-align:center;"><span class="badge badge-indigo">T${esc(m.tier)}</span></td>
+      <td style="text-align:center;">${tierTags}</td>
       <td style="text-align:center;"><span class="badge badge-violet">${esc(m.apl)}</span></td>
       <td>${trunc(m['season-setting'], 14)}</td>
       <td>${esc(m['running-time'])}</td>
@@ -633,16 +679,55 @@ function updateStats() {
 }
 
 // -----------------------------------------------------------------------
+// Tier helper
+// -----------------------------------------------------------------------
+function getTierArray(tier) {
+  if (Array.isArray(tier)) return tier.map(t => parseInt(t)).filter(Boolean);
+  if (typeof tier === 'string' && tier.startsWith('[')) {
+    try {
+      const arr = JSON.parse(tier);
+      return Array.isArray(arr) ? arr.map(t => parseInt(t)).filter(Boolean) : [parseInt(tier)];
+    } catch { return [parseInt(tier)].filter(Boolean); }
+  }
+  return tier ? [parseInt(tier)] : [];
+}
+
+function formatTierTableCell(tier) {
+  const tiers = getTierArray(tier);
+  if (tiers.length === 0) return '—';
+  return tiers.map(t => `<span class="badge badge-tier-${t}">T${t}</span>`).join(' ');
+}
+
+// -----------------------------------------------------------------------
 // Detail strip
 // -----------------------------------------------------------------------
+function formatTierLabel(tier) {
+  if (!tier) return '—';
+  const tiers = getTierArray(tier);
+  if (tiers.length === 0) return '—';
+  return tiers.map(t => `<span class="badge badge-tier-${t}">T${t}</span>`).join(' ');
+}
+
+function formatAplLabel(apl) {
+  if (!apl) return '—';
+  if (Array.isArray(apl)) return `APL ${apl.join(', ')}`;
+  if (typeof apl === 'string' && apl.startsWith('[')) {
+    try {
+      const arr = JSON.parse(apl);
+      if (Array.isArray(arr)) return `APL ${arr.join(', ')}`;
+    } catch {}
+  }
+  return `APL ${apl}`;
+}
+
 function selectRow(m) {
   selectedRow = m.rowid;
   renderTable();
   document.getElementById('detailStrip').classList.add('open');
   document.getElementById('detCode').textContent    = m.code    || '—';
   document.getElementById('detName').textContent    = m.name    || '—';
-  document.getElementById('detTier').textContent    = `T${m.tier || '—'}`;
-  document.getElementById('detApl').textContent     = `APL ${m.apl || '—'}`;
+  document.getElementById('detTier').innerHTML      = formatTierLabel(m.tier);
+  document.getElementById('detApl').textContent     = formatAplLabel(m.apl);
   document.getElementById('detSeason').textContent  = m['season-setting'] || '—';
   document.getElementById('detRunTime').textContent = m['running-time']   || '—';
   document.getElementById('detLastRun').textContent = formatDate(m['last-run']);
@@ -668,7 +753,17 @@ function openAddDrawer() {
   document.getElementById('editRowid').value = '';
   document.getElementById('moduleForm').reset();
   selectedRewardIds = [];
+  selectedTierIds  = [];
+  selectedAplIds   = [];
   renderRewardChips();
+  
+  // Ensure single-value mode for new modules
+  document.getElementById('fEpic').checked = false;
+  document.getElementById('fTier').style.display = 'block';
+  document.getElementById('fApl').style.display = 'block';
+  document.getElementById('tierMultiContainer').style.display = 'none';
+  document.getElementById('aplMultiContainer').style.display = 'none';
+  
   closeRewardDropdown();
   openDrawer();
 }
@@ -680,16 +775,69 @@ function openEditDrawer(rowid) {
   document.getElementById('fCode').value    = m.code    || '';
   document.getElementById('fName').value    = m.name    || '';
   document.getElementById('fSeason').value  = m['season-setting'] || '';
-  document.getElementById('fTier').value    = m.tier    || '';
-  document.getElementById('fApl').value     = m.apl     || '';
   document.getElementById('fRunTime').value = m['running-time']   || '';
   document.getElementById('fLink').value    = m['google-link']    || '';
   document.getElementById('fLastRun').value = m['last-run']       || '';
   document.getElementById('fNotes').value   = m.notes   || '';
+  
   // Load rewards (array from backend)
   const rewardArr = Array.isArray(m.reward) ? m.reward : (m.reward ? [m.reward] : []);
   selectedRewardIds = rewardArr.map(Number).filter(Boolean);
   renderRewardChips();
+  
+  // Handle epic and tier/apl
+  const isEpic = m.epic ? true : false;
+  document.getElementById('fEpic').checked = isEpic;
+  
+  // Parse tier and apl (could be single values or JSON arrays)
+  selectedTierIds = [];
+  selectedAplIds = [];
+  
+  if (isEpic) {
+    // Tier and APL are stored as JSON arrays when epic=true
+    if (m.tier) {
+      if (Array.isArray(m.tier)) {
+        selectedTierIds = m.tier.map(t => parseInt(t)).filter(Boolean);
+      } else if (typeof m.tier === 'string' && m.tier.startsWith('[')) {
+        try {
+          selectedTierIds = JSON.parse(m.tier).map(t => parseInt(t)).filter(Boolean);
+        } catch {
+          selectedTierIds = [parseInt(m.tier)].filter(Boolean);
+        }
+      } else {
+        selectedTierIds = [parseInt(m.tier)].filter(Boolean);
+      }
+    }
+    if (m.apl) {
+      if (Array.isArray(m.apl)) {
+        selectedAplIds = m.apl.map(a => parseInt(a)).filter(Boolean);
+      } else if (typeof m.apl === 'string' && m.apl.startsWith('[')) {
+        try {
+          selectedAplIds = JSON.parse(m.apl).map(a => parseInt(a)).filter(Boolean);
+        } catch {
+          selectedAplIds = [parseInt(m.apl)].filter(Boolean);
+        }
+      } else {
+        selectedAplIds = [parseInt(m.apl)].filter(Boolean);
+      }
+    }
+    // Show multi-value inputs
+    document.getElementById('fTier').style.display = 'none';
+    document.getElementById('fApl').style.display = 'none';
+    document.getElementById('tierMultiContainer').style.display = 'block';
+    document.getElementById('aplMultiContainer').style.display = 'block';
+    renderTierChips();
+    renderAplChips();
+  } else {
+    // Show single-value inputs
+    document.getElementById('fTier').value = m.tier || '';
+    document.getElementById('fApl').value  = m.apl  || '';
+    document.getElementById('fTier').style.display = 'block';
+    document.getElementById('fApl').style.display = 'block';
+    document.getElementById('tierMultiContainer').style.display = 'none';
+    document.getElementById('aplMultiContainer').style.display = 'none';
+  }
+  
   closeRewardDropdown();
   openDrawer();
 }
@@ -849,6 +997,125 @@ function addReward(id) {
 }
 
 // -----------------------------------------------------------------------
+// Epic toggle and multi-value tier/apl helpers
+// -----------------------------------------------------------------------
+function onEpicToggle() {
+  const isEpic = document.getElementById('fEpic').checked;
+  const tierSingleContainer = document.querySelector('[style*="grid-template-columns:1fr 1fr;gap:14px;"]') || 
+                              document.querySelectorAll('div')[0];
+  const tierInput = document.getElementById('fTier');
+  const aplInput = document.getElementById('fApl');
+  const tierMultiContainer = document.getElementById('tierMultiContainer');
+  const aplMultiContainer = document.getElementById('aplMultiContainer');
+  
+  if (isEpic) {
+    // Switch to multi-value mode
+    tierInput.style.display = 'none';
+    aplInput.style.display = 'none';
+    tierMultiContainer.style.display = 'block';
+    aplMultiContainer.style.display = 'block';
+    
+    // Move current single values to arrays if they exist
+    if (tierInput.value) {
+      const tierVal = parseInt(tierInput.value);
+      if (!selectedTierIds.includes(tierVal)) selectedTierIds.push(tierVal);
+    }
+    if (aplInput.value) {
+      const aplVal = parseInt(aplInput.value);
+      if (!selectedAplIds.includes(aplVal)) selectedAplIds.push(aplVal);
+    }
+    renderTierChips();
+    renderAplChips();
+  } else {
+    // Switch to single-value mode
+    tierInput.style.display = 'block';
+    aplInput.style.display = 'block';
+    tierMultiContainer.style.display = 'none';
+    aplMultiContainer.style.display = 'none';
+    
+    // Take first value if multiple exist
+    if (selectedTierIds.length > 0) tierInput.value = selectedTierIds[0];
+    if (selectedAplIds.length > 0) aplInput.value = selectedAplIds[0];
+  }
+}
+
+function renderTierChips() {
+  const container = document.getElementById('tierChips');
+  container.innerHTML = '';
+  selectedTierIds.sort((a, b) => a - b).forEach(tier => {
+    const chip = document.createElement('div');
+    chip.className = `tier-chip tier-chip-${tier}`;
+    chip.innerHTML = `
+      ${tier}
+      <button type="button" class="chip-x" onclick="removeTier(${tier})">✕</button>
+    `;
+    container.appendChild(chip);
+  });
+}
+
+function renderAplChips() {
+  const container = document.getElementById('aplChips');
+  container.innerHTML = '';
+  selectedAplIds.sort((a, b) => a - b).forEach(apl => {
+    const chip = document.createElement('div');
+    chip.className = 'reward-chip';
+    chip.innerHTML = `
+      ${apl}
+      <button type="button" class="chip-x" onclick="removeApl(${apl})">✕</button>
+    `;
+    container.appendChild(chip);
+  });
+}
+
+function removeTier(tier) {
+  selectedTierIds = selectedTierIds.filter(t => t !== tier);
+  renderTierChips();
+}
+
+function removeApl(apl) {
+  selectedAplIds = selectedAplIds.filter(a => a !== apl);
+  renderAplChips();
+}
+
+function onTierMultiInput() {
+  const input = document.getElementById('tierMultiSearch');
+  if (input.value && input.value.trim()) {
+    const val = parseInt(input.value);
+    if (val >= 1 && val <= 4) {
+      if (!selectedTierIds.includes(val)) selectedTierIds.push(val);
+      renderTierChips();
+      input.value = '';
+    }
+  }
+}
+
+function onTierMultiKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    onTierMultiInput();
+  }
+}
+
+function onAplMultiInput() {
+  const input = document.getElementById('aplMultiSearch');
+  if (input.value && input.value.trim()) {
+    const val = parseInt(input.value);
+    if (val >= 1 && val <= 20) {
+      if (!selectedAplIds.includes(val)) selectedAplIds.push(val);
+      renderAplChips();
+      input.value = '';
+    }
+  }
+}
+
+function onAplMultiKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    onAplMultiInput();
+  }
+}
+
+// -----------------------------------------------------------------------
 // Add New Item modal — built dynamically from real schema
 // -----------------------------------------------------------------------
 
@@ -932,18 +1199,31 @@ async function submitNewItem(e) {
 async function saveModule(e) {
   e.preventDefault();
   const rowid = document.getElementById('editRowid').value;
+  const isEpic = document.getElementById('fEpic').checked;
+  
   const payload = {
     'code':           document.getElementById('fCode').value.trim(),
     'season-setting': document.getElementById('fSeason').value.trim(),
     'name':           document.getElementById('fName').value.trim(),
-    'tier':           parseInt(document.getElementById('fTier').value) || null,
-    'apl':            parseInt(document.getElementById('fApl').value)  || null,
     'running-time':   document.getElementById('fRunTime').value.trim(),
     'google-link':    document.getElementById('fLink').value.trim()    || null,
     'last-run':       document.getElementById('fLastRun').value        || null,
     'reward':         [...selectedRewardIds],
     'notes':          document.getElementById('fNotes').value.trim()   || null,
+    'epic':           isEpic ? 1 : 0,
   };
+  
+  // Handle tier and apl based on epic mode
+  if (isEpic) {
+    // Store as arrays when epic=true
+    payload['tier'] = selectedTierIds.length > 0 ? selectedTierIds : null;
+    payload['apl']  = selectedAplIds.length > 0 ? selectedAplIds : null;
+  } else {
+    // Store as single values when epic=false
+    payload['tier'] = parseInt(document.getElementById('fTier').value) || null;
+    payload['apl']  = parseInt(document.getElementById('fApl').value)  || null;
+  }
+  
   try {
     const url    = rowid ? `/api/modules/${rowid}` : '/api/modules';
     const method = rowid ? 'PUT' : 'POST';

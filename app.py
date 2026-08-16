@@ -65,6 +65,40 @@ def _serialize_reward(val):
     return json.dumps(ids) if ids else None
 
 
+def _serialize_multi_int(val):
+    """Serialize a list of integers to a JSON string for DB storage, or None."""
+    if not val:
+        return None
+    if isinstance(val, (list, tuple)):
+        ids = [int(x) for x in val if x is not None]
+    else:
+        ids = [int(val)]
+    return json.dumps(ids) if ids else None
+
+
+def _parse_multi_int(val):
+    """Normalize any stored multi-int value → list of ints."""
+    if val is None or val == '':
+        return []
+    if isinstance(val, int):
+        return [val]
+    if isinstance(val, list):
+        return [int(x) for x in val if x is not None]
+    if isinstance(val, str):
+        s = val.strip()
+        if s.startswith('['):
+            try:
+                arr = json.loads(s)
+                return [int(x) for x in arr if x is not None]
+            except Exception:
+                pass
+        try:
+            return [int(s)]
+        except Exception:
+            pass
+    return []
+
+
 # ---------------------------------------------------------------------------
 # Global JSON error handlers — Flask always returns JSON, never HTML
 # ---------------------------------------------------------------------------
@@ -109,12 +143,13 @@ MODULE_FIELD_KEYWORDS = {
     'last-run':       [['last', 'run'], ['lastrun'], ['last_run'], ['last']],
     'reward':         [['reward']],
     'notes':          [['note']],
+    'epic':           [['epic']],
 }
 
 # Logical app fields in INSERT order
 APP_FIELDS = [
     'code', 'season-setting', 'name', 'tier', 'apl',
-    'running-time', 'google-link', 'last-run', 'reward', 'notes'
+    'running-time', 'google-link', 'last-run', 'reward', 'notes', 'epic'
 ]
 
 
@@ -193,10 +228,15 @@ def _build_update_sql(field_map):
 def _extract_params(data, fields, field_map):
     """Pull values from request data in the correct order for a SQL statement."""
     params = []
+    is_epic = data.get('epic', False)
     for app_field in fields:
         val = data.get(app_field)
         if app_field == 'reward':
             val = _serialize_reward(val or [])
+        elif app_field == 'tier' and is_epic:
+            val = _serialize_multi_int(val or [])
+        elif app_field == 'apl' and is_epic:
+            val = _serialize_multi_int(val or [])
         params.append(val)
     return params
 
