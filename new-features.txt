@@ -17,3 +17,7 @@
 * Item Display and Filtering
 ** DB - items table add column for rarity (string) and attunement (boolean)
 ** FrontEnd - Add fields for rarity and attunement with corresponding filters
+
+* Module Setting
+** DB - modules table add a column for setting (FR - Forgotten Realms, RV - Ravenloft, etc.)
+** FrontEnd - On the modules display add a column for the module setting and corresponding filters, when adding the modules the setting should be a check box picker because modules can be part of more than one setting, epics and planescape for example
