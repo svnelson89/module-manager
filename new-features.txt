@@ -12,3 +12,5 @@
 
 * Item additions, need validation to ensure no exact duplicates get added, there needs to be some difference (i.e. unique name or property)
 
+* On the items list display, add a column showing the modules codes where that item is a reward
+
