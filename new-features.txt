@@ -14,3 +14,6 @@
 
 * On the items list display, add a column showing the modules codes where that item is a reward
 
+* Item Display and Filtering
+** DB - items table add column for rarity (string) and attunement (boolean)
+** FrontEnd - Add fields for rarity and attunement with corresponding filters
