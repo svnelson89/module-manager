@@ -21,3 +21,5 @@
 * Module Setting
 ** DB - modules table add a column for setting (FR - Forgotten Realms, RV - Ravenloft, etc.)
 ** FrontEnd - On the modules display add a column for the module setting and corresponding filters, when adding the modules the setting should be a check box picker because modules can be part of more than one setting, epics and planescape for example
+
+* Module display page, the number sorting needs to be natural sort and not numerical so 10 shows up after 9 not after 1
