@@ -1,0 +1,14 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "&": true,
+        "/^cd c:\\\\module-manager ; python app\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "Get-Errors": true,
+        "/^python -c \"s='Ring of Fire Resistance'; print\\(len\\(s\\), s\\[:22\\]\\+'\\.\\.\\.' if len\\(s\\) > 22 else s\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

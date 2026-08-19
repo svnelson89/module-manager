@@ -952,6 +952,8 @@ function openAddDrawer() {
   
   // Ensure single-value mode for new modules
   document.getElementById('fEpic').checked = false;
+  document.getElementById('fTier').required = true;
+  document.getElementById('fApl').required = true;
   document.getElementById('fTierWrap').style.display = 'block';
   document.getElementById('fAplWrap').style.display = 'block';
   document.getElementById('tierMultiContainer').style.display = 'none';
@@ -981,6 +983,8 @@ function openEditDrawer(rowid) {
   // Handle epic and tier/apl
   const isEpic = m.epic ? true : false;
   document.getElementById('fEpic').checked = isEpic;
+  document.getElementById('fTier').required = !isEpic;
+  document.getElementById('fApl').required = !isEpic;
   
   // Parse tier and apl (could be single values or JSON arrays)
   selectedTierIds = [];
@@ -1199,6 +1203,9 @@ function onEpicToggle() {
   const aplInput = document.getElementById('fApl');
   const tierMultiContainer = document.getElementById('tierMultiContainer');
   const aplMultiContainer = document.getElementById('aplMultiContainer');
+
+  tierInput.required = !isEpic;
+  aplInput.required = !isEpic;
   
   if (isEpic) {
     // Switch to multi-value mode
